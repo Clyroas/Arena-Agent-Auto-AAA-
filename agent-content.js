@@ -5,7 +5,11 @@
   const runtime = chrome.runtime;
   const previous = globalThis.__ARENA_AGENT_REGISTRATION__;
   if (previous?.version === VERSION && previous.isAlive?.()) return;
+  // A stale registration (e.g. left by an older/removed extension build whose runtime id is gone)
+  // must be deleted before re-registering, otherwise the panel's probe sees the dead entry and
+  // reports SCRIPT_REGISTRATION_FAILED forever until a manual reload.
   try { previous?.dispose?.(); } catch { /* old invalidated context */ }
+  if (previous && !previous.isAlive?.()) { try { delete globalThis.__ARENA_AGENT_REGISTRATION__; } catch { /* frozen object */ } }
   const D = globalThis.ArenaAgentDOM;
   let owner = null, transaction = null, lastHeartbeat = 0, timer = null, observer = null;
   let scanQueued = false;
