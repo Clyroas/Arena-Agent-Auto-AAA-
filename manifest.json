@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Arena Agent Auto Chat",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Experimental automatic Arena chat (Agent Mode and Direct). Sends once through Arena’s page and captures the matching reply. No manual fallback.",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -16,7 +16,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Arena Agent Auto Chat · 2.3.0",
+    "default_title": "Arena Agent Auto Chat · 2.3.1",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"

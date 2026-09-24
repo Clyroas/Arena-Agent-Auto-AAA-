@@ -3,6 +3,16 @@
   const VERSION = globalThis.ArenaAgentVersion?.VERSION ?? null;
   if (!VERSION) throw new Error('Arena Agent Auto Chat: version.js must load before agent-content.js.');
   const runtime = chrome.runtime;
+  // Guard against re-executing this file's body in the same document. Chrome can run a
+  // content script twice per page load when manifest-declared injection and a
+  // chrome.scripting.executeScript(files: ...) call overlap; re-running would dispose the
+  // live registration (and its connected port) mid-attach and make the panel's probe fail
+  // with SCRIPT_REGISTRATION_FAILED even though everything is healthy.
+  if (globalThis.__ARENA_AGENT_CONTENT_LOADED__ === VERSION) {
+    const live = globalThis.__ARENA_AGENT_REGISTRATION__;
+    if (live?.version === VERSION && live.isAlive?.()) return;
+  }
+  globalThis.__ARENA_AGENT_CONTENT_LOADED__ = VERSION;
   const previous = globalThis.__ARENA_AGENT_REGISTRATION__;
   if (previous?.version === VERSION && previous.isAlive?.()) return;
   // A stale registration (e.g. left by an older/removed extension build whose runtime id is gone)
@@ -419,6 +429,7 @@
       window.removeEventListener('pagehide', onPageHide);
       document.removeEventListener('resume', onResume); document.removeEventListener('visibilitychange', onResume);
       delete globalThis.__ARENA_AGENT_REGISTRATION__;
+      if (globalThis.__ARENA_AGENT_CONTENT_LOADED__ === VERSION) delete globalThis.__ARENA_AGENT_CONTENT_LOADED__;
     }
   };
 })();

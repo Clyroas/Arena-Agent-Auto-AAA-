@@ -26,6 +26,15 @@ export async function attachAgent(tabId, expectedUrl) {
   if (!isArena(before.url)) throw new AttachmentError('WRONG_ORIGIN', 'The selected tab is not on https://arena.ai. Open the Agent tab and select it again.');
   if (expectedUrl && !samePage(before.url, expectedUrl))
     throw new AttachmentError('TAB_NAVIGATED', 'The selected Arena tab navigated before connection. Choose the current Agent conversation and reconnect.');
+  // Self-heal BEFORE injecting: a stale registration object left in the page's isolated
+  // world by an older build (or by this build after a failed attach) can block
+  // re-registration and cause a false SCRIPT_REGISTRATION_FAILED. Clear it once here.
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId, frameIds: [0] }, world: 'ISOLATED',
+      func: () => { const p = globalThis.__ARENA_AGENT_REGISTRATION__; try { if (p && !p.isAlive?.()) delete globalThis.__ARENA_AGENT_REGISTRATION__; } catch {} return true; }
+    });
+  } catch { /* tab may be mid-navigation; the real inject below will surface any problem */ }
   let injected, lastInjectErrors = [];
   try {
     // Only packaged code, the selected tab's top frame, and Chrome's isolated world.
@@ -37,6 +46,7 @@ export async function attachAgent(tabId, expectedUrl) {
   } catch (error) {
     throw new AttachmentError('CONTENT_SCRIPT_INJECTION_FAILED', `Chrome could not attach the Agent script to tab ${tabId}. Browser detail: ${error.message || 'unknown injection error'}. Check this extension’s Arena site access, any Chrome/organization restrictions, and that the tab is a normal https://arena.ai page. No prompt was sent.`);
   }
+  lastInjectErrors = (injected || []).filter(r => r?.error).map(r => `frame ${r.frameId}: ${r.error}`);
   const documentId = injected?.find(result => result.frameId === 0)?.documentId;
   if (!documentId)
     throw new AttachmentError('DOCUMENT_NOT_FOUND', 'Chrome did not return the Arena top-frame document ID after attachment. Reload the Arena tab and reconnect. No prompt was sent.');
@@ -45,18 +55,18 @@ export async function attachAgent(tabId, expectedUrl) {
     // Injection and registration probe run strictly sequentially, pinned to the same documentId.
     // Previously the probe could race page teardown/navigation and produce false
     // SCRIPT_REGISTRATION_FAILED errors even though the scripts were fine.
-    const injectResults = await chrome.scripting.executeScript({
-      target: { tabId, frameIds: [0] }, world: 'ISOLATED',
-      files: ['version.js', 'attachment-policy.js', 'agent-dom.js', 'agent-content.js']
-    });
-    lastInjectErrors = (injectResults || []).filter(r => r?.error).map(r => `frame ${r.frameId}: ${r.error}`);
     // Probe in a second call AFTER injection resolved, against the SAME documentId Chrome
     // returned above — if the page navigated meanwhile this fails fast with DOCUMENT_CHANGED
     // instead of falsely reporting SCRIPT_REGISTRATION_FAILED.
-    checks = await chrome.scripting.executeScript({
-      target: { tabId, documentIds: [documentId] }, world: 'ISOLATED',
-      func: registrationProbe
-    });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      checks = await chrome.scripting.executeScript({
+        target: { tabId, documentIds: [documentId] }, world: 'ISOLATED',
+        func: registrationProbe
+      });
+      const p = checks?.[0]?.result;
+      if (p && p.version === ADAPTER_VERSION && p.domVersion === ADAPTER_VERSION && p.attachmentsPolicy === true) break;
+      if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 350));
+    }
   } catch (error) {
     if (lastInjectErrors.length || /frame|document/i.test(error.message || ''))
       throw new AttachmentError('DOCUMENT_CHANGED', `The Arena document became unavailable during attachment. Browser detail: ${error.message || 'document changed'}. Wait for it to finish loading and reconnect; no prompt was sent.`);

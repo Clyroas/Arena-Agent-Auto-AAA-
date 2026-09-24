@@ -1,6 +1,6 @@
 # Arena Agent Auto Chat
 
-**Version:** 2.3.0 · **Platform:** Chrome Extension (Manifest V3) · **Target site:** `https://arena.ai`
+**Version:** 2.3.1 · **Platform:** Chrome Extension (Manifest V3) · **Target site:** `https://arena.ai`
 
 A Chrome side-panel extension that automates chatting on arena.ai in **Agent mode** and **Direct (single-model) mode**: it sends your prompt through the page exactly once, watches the Arena DOM for the matching reply, captures it back into the panel, and keeps a conversation history — with no manual fallback path.
 
@@ -52,7 +52,7 @@ worker.js (MV3 service worker)  ◄── attachment.js (chrome.scripting.execut
 The version is defined **once** in [`version.js`](version.js):
 
 ```js
-export const VERSION = '2.3.0';
+globalThis.ArenaAgentVersion.VERSION = '2.3.1'; // (exported from the global for classic-script idempotency)
 globalThis.ArenaAgentVersion = { VERSION };
 ```
 
