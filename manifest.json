@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Arena Agent Auto Chat",
+  "version": "2.3.0",
+  "description": "Experimental automatic Arena chat (Agent Mode and Direct). Sends once through Arena’s page and captures the matching reply. No manual fallback.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "sidePanel",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://arena.ai/*"
+  ],
+  "background": {
+    "service_worker": "worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Arena Agent Auto Chat · 2.3.0",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'; img-src 'self' blob:; style-src 'self'"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://arena.ai/*"
+      ],
+      "js": [
+        "attachment-policy.js",
+        "agent-dom.js",
+        "agent-content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
