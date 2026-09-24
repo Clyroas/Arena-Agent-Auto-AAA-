@@ -1,12 +1,13 @@
 import { isArena, samePage } from './core.js';
-export const ADAPTER_VERSION = '2.3.0';
+import { VERSION } from './version.js';
+export const ADAPTER_VERSION = VERSION;
 export class AttachmentError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }
 export async function attachAgent(tabId, expectedUrl) {
   if (!Number.isInteger(tabId)) throw new AttachmentError('INVALID_TAB', 'Choose an Arena Agent tab first.');
   if (!chrome.scripting?.executeScript)
-    throw new AttachmentError('EXTENSION_UPDATE_REQUIRED', 'The scripting API is unavailable. Reload Arena Agent Auto Chat in chrome://extensions and confirm version 2.3.0 with the scripting permission.');
+    throw new AttachmentError('EXTENSION_UPDATE_REQUIRED', `The scripting API is unavailable. Reload Arena Agent Auto Chat in chrome://extensions and confirm version ${VERSION} with the scripting permission.`);
   if (!await chrome.permissions.contains({ origins: ['https://arena.ai/*'] }))
     throw new AttachmentError('SITE_ACCESS_REQUIRED', 'Chrome has not granted Arena site access. Open chrome://extensions → Arena Agent Auto Chat → Details → Site access and allow https://arena.ai, then reconnect. Do not grant access to all sites.');
   const before = await chrome.tabs.get(tabId);
@@ -19,7 +20,7 @@ export async function attachAgent(tabId, expectedUrl) {
     // Repeated injection is idempotent and cannot submit a prompt.
     injected = await chrome.scripting.executeScript({
       target: { tabId, frameIds: [0] }, world: 'ISOLATED',
-      files: ['attachment-policy.js', 'agent-dom.js', 'agent-content.js']
+      files: ['version.js', 'attachment-policy.js', 'agent-dom.js', 'agent-content.js']
     });
   } catch (error) {
     throw new AttachmentError('CONTENT_SCRIPT_INJECTION_FAILED', `Chrome could not attach the Agent script to tab ${tabId}. Browser detail: ${error.message || 'unknown injection error'}. Check this extension’s Arena site access, any Chrome/organization restrictions, and that the tab is a normal https://arena.ai page. No prompt was sent.`);
@@ -41,7 +42,7 @@ export async function attachAgent(tabId, expectedUrl) {
     throw new AttachmentError('DOCUMENT_CHANGED', `The Arena document became unavailable during attachment. Browser detail: ${error.message || 'document changed'}. Wait for it to finish loading and reconnect; no prompt was sent.`);
   }
   if (checks?.[0]?.result?.version !== ADAPTER_VERSION || checks?.[0]?.result?.domVersion !== ADAPTER_VERSION || checks?.[0]?.result?.attachmentsPolicy !== true)
-    throw new AttachmentError('SCRIPT_REGISTRATION_FAILED', 'The bundled Agent script did not register version 2.3.0. Reload the extension and tab. This is an extension attachment problem, not an Arena reply timeout. No prompt was sent.');
+    throw new AttachmentError('SCRIPT_REGISTRATION_FAILED', `The bundled Agent script did not register version ${VERSION}. Reload the extension and tab. This is an extension attachment problem, not an Arena reply timeout. No prompt was sent.`);
   const after = await chrome.tabs.get(tabId);
   if (!samePage(after.url, before.url) || !isArena(after.url))
     throw new AttachmentError('TAB_NAVIGATED', 'Arena navigated during connection. Reconnect to the current Agent conversation; no prompt was sent.');

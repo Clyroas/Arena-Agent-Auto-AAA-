@@ -2,7 +2,8 @@
 // content script (chrome.tabs.connect from this extension page). The MV3 service worker is only
 // used for short one-shot requests (attach/inject, staged-file grants), so Chrome suspending the
 // idle worker can no longer drop the chat connection.
-export const ADAPTER_VERSION = '2.3.0';
+import { VERSION } from './version.js';
+export const ADAPTER_VERSION = VERSION;
 export const HEARTBEAT_MS = 10000;
 
 export class AgentClient {

@@ -2,6 +2,7 @@ import { setupFloatingGeometry } from './window-geometry.js';
 import { ConversationView } from './conversation-view.js';
 import { AgentClient } from './agent-client.js';
 import { AGENT_URL, isArena, isDirect, tabLabel, samePage, directModelUrl } from './core.js';
+import { VERSION } from './version.js';
 import { liveStatus } from './live-status.js';
 import './attachment-policy.js'; // Registers ArenaAgentAttachments (same text the page adapter loads).
 const { ATTACHMENT_POLICY, validateAttachments, bytesToBase64, formatBytes } = globalThis.ArenaAgentAttachments;
@@ -14,6 +15,7 @@ let busy = false, epoch = 0, dialogResolve = null;
 let historyRequest = null;
 const staged = []; // Staged files live in memory only, until an accepted send or a local reset.
 $('attachment-input').accept = ATTACHMENT_POLICY.accept;
+const versionBadge = $('version'); if (versionBadge) versionBadge.textContent = `v${VERSION}`;
 const labels = { disconnected: 'Disconnected', connecting: 'Checking controls…', reconnecting: 'Reconnecting…', ready: 'Auto ready', sending: 'Sending…', waiting: 'Waiting for Arena', error: 'Stopped · check tab' };
 const rpc = async (type, extra = {}) => {
   const result = await chrome.runtime.sendMessage({ type, ...extra });
@@ -105,7 +107,7 @@ function render() {
   $('pending').dataset.question = String(!!pending?.live?.questions?.length && pending?.status !== 'error');
   $('tab-name').textContent = tab ? tabLabel(tab) : '';
   $('tab-url').textContent = tab?.url || '';
-  $('adapter-state').textContent = client?.ready ? (client.reviewPending ? 'Agent task-review panel detected. On your next Send, only its Close control will be used; no feedback will be selected.' : `Agent content script v2.3.0 verified · ${client.inputKind} input · upload: ${client.uploadKind === 'input' ? 'composer file input ready' : client.uploadKind === 'unsupported' ? 'a restricted or ambiguous file input — staged files cannot be sent' : client.uploadKind === 'button-only' ? 'site picker only — attach in Arena' : 'not detected — staged files cannot be sent'}`) : 'Agent control check not ready. Reconnect after fixing the reported issue.';
+  $('adapter-state').textContent = client?.ready ? (client.reviewPending ? 'Agent task-review panel detected. On your next Send, only its Close control will be used; no feedback will be selected.' : `Agent content script v${VERSION} verified · ${client.inputKind} input · upload: ${client.uploadKind === 'input' ? 'composer file input ready' : client.uploadKind === 'unsupported' ? 'a restricted or ambiguous file input — staged files cannot be sent' : client.uploadKind === 'button-only' ? 'site picker only — attach in Arena' : 'not detected — staged files cannot be sent'}`) : 'Agent control check not ready. Reconnect after fixing the reported issue.';
   $('progress').textContent = pending?.status === 'error' ? 'Capture stopped. Read the error above and check the Arena tab. No manual reply entry is available.' : pending?.phase === 'review' ? 'Closing the task-review panel and waiting for the composer. No feedback is selected.' : pending?.live?.questions?.length ? 'Review the question cards above. Select an answer, then submit it explicitly. Sensitive or unsupported actions stay in Arena.' : pending?.status === 'waiting' ? 'Your message is in Arena. The status above follows its visible activity; the final reply appears separately — no response time limit. Approvals and unsupported controls stay in Arena.' : pending?.phase === 'upload' ? 'Placing your staged files into the Arena composer, then attempting exactly one Send click…' : 'Preparing the Arena composer and attempting exactly one Send click…';
   const found = client?.ready ? client.historyCount || 0 : 0, imported = turns.filter(t => t.imported).length;
   $('history-import').hidden = !client?.ready || (!found && !imported);

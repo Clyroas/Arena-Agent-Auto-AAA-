@@ -633,7 +633,9 @@
     try { return rows(doc).filter(row => row.user).length; } catch { return 0; }
   }
 
-  globalThis.ArenaAgentDOM = { version: '2.3.0', ROW, DomError, fail, visible, checkBlocks, rows, ended, running,
+  const VERSION = globalThis.ArenaAgentVersion?.VERSION ?? null;
+  if (!VERSION) throw new Error('Arena Agent Auto Chat: version.js must load before agent-dom.js.');
+  globalThis.ArenaAgentDOM = { version: VERSION, ROW, DomError, fail, visible, checkBlocks, rows, ended, running,
     composer, sendButton, enabled, reviewPanel, conversationReady, inspectControls, preflight, matchTurn, questionsFor, toolActivity, thinkingStatus, historyTurns, historyCount, answerText, normalize, composerText, writeComposer, composerSummary, fileInputsFor, composerFileInputs, uploadsFor, stageRequestFor, nearComposer, promptMatches,
     pageKind, modeLabel, currentModel, modelCatalog, samePage };
 })();

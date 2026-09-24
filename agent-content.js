@@ -1,6 +1,7 @@
 (() => {
   'use strict';
-  const VERSION = '2.3.0';
+  const VERSION = globalThis.ArenaAgentVersion?.VERSION ?? null;
+  if (!VERSION) throw new Error('Arena Agent Auto Chat: version.js must load before agent-content.js.');
   const runtime = chrome.runtime;
   const previous = globalThis.__ARENA_AGENT_REGISTRATION__;
   if (previous?.version === VERSION && previous.isAlive?.()) return;
@@ -13,7 +14,7 @@
   const LEASE_MS = 5 * 60 * 1000;
   const consumed = new Set();
   const documentId = crypto.randomUUID();
-  function emit(message) { try { owner?.postMessage({ ...message, documentId, adapterVersion: '2.3.0' }); } catch { cleanup(); } }
+  function emit(message) { try { owner?.postMessage({ ...message, documentId, adapterVersion: VERSION }); } catch { cleanup(); } }
   function stopTransaction() { transaction = null; }
   function cleanup() {
     stopTransaction(); observer?.disconnect(); observer = null;
